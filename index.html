@@ -3,121 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pomodoro Timer</title>
+    <title>Pomodoro Timer - DevRest</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-classic">
-    <div class="container">
-        <div class="pomodoro-wrapper">
-            <!-- Top Controls -->
-            <div class="top-controls">
-                <button id="bgBtn" class="icon-btn" title="Cambiar fondo">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
-                        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
-                        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
-                        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
-                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
-                    </svg>
-                </button>
-                <button id="musicBtn" class="icon-btn" title="Modo música">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 18V5l12-2v13"/>
-                        <circle cx="6" cy="18" r="3"/>
-                        <circle cx="18" cy="16" r="3"/>
-                    </svg>
-                </button>
+<body>
+    <canvas id="particles"></canvas>
+    
+    <header>
+        <nav>
+            <div class="logo">Dev<span class="highlight">Rest</span></div>
+            <div class="nav-links">
+                <a href="#" class="active"  target="_blank">Timer</a>
+                <a href="https://rests.info/" target="_blank">Rest</a>
+                <a href="https://github.com/younesrest" target="_blank">Github</a>
             </div>
+            <!-- Agregado icono de luna para el toggle de tema -->
+            <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+                <svg class="sun-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="3" fill="currentColor"/>
+                    <path d="M10 1V3M10 17V19M19 10H17M3 10H1M16.657 3.343L15.243 4.757M4.757 15.243L3.343 16.657M16.657 16.657L15.243 15.243M4.757 4.757L3.343 3.343" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <svg class="moon-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M17 11.5C16.2 14.5 13.5 17 10 17C6 17 3 14 3 10C3 6.5 5.5 3.8 8.5 3C7.5 3.8 7 5.3 7 7C7 9.8 9.2 12 12 12C13.7 12 15.2 11.5 16 10.5C16.5 10.8 17 11.1 17 11.5Z" fill="currentColor"/>
+                </svg>
+            </button>
+        </nav>
+    </header>
 
-            <!-- Background Picker -->
-            <div id="bgPicker" class="bg-picker hidden">
-                <p class="picker-title">Seleccionar fondo</p>
-                <div class="bg-grid">
-                    <button class="bg-option active" data-bg="classic">Clásico</button>
-                    <button class="bg-option" data-bg="ocean">Océano</button>
-                    <button class="bg-option" data-bg="forest">Bosque</button>
-                    <button class="bg-option" data-bg="sunset">Atardecer</button>
-                    <button class="bg-option" data-bg="lavender">Lavanda</button>
-                    <button class="bg-option" data-bg="rose">Rosa</button>
-                </div>
-            </div>
+    <main>
+        <div class="container">
+            <div class="timer-section">
+                <h1 class="title">Pomodoro <span class="highlight">Timer</span></h1>
+                <p class="subtitle">Stay focused and productive</p>
 
-            <!-- Main Card -->
-            <div class="card">
-                <!-- Header -->
-                <div class="header">
-                    <h1 class="title">Pomodoro</h1>
-                    <p class="subtitle" id="modeText">Tiempo de enfoque</p>
-                </div>
-
-                <!-- Music Mode Banner -->
-                <div id="musicBanner" class="music-banner hidden">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 18V5l12-2v13"/>
-                        <circle cx="6" cy="18" r="3"/>
-                        <circle cx="18" cy="16" r="3"/>
-                    </svg>
-                    <span>Modo música activo</span>
-                    <button id="volumeBtn" class="volume-btn">
-                        <svg id="volumeIcon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Mode Selector -->
                 <div class="mode-selector">
-                    <button id="workBtn" class="mode-btn active">Trabajo</button>
-                    <button id="breakBtn" class="mode-btn">Descanso</button>
+                    <button class="mode-btn active" data-mode="work">Work</button>
+                    <button class="mode-btn" data-mode="short">Short Break</button>
+                    <button class="mode-btn" data-mode="long">Long Break</button>
                 </div>
 
-                <!-- Timer Circle -->
-                <div class="timer-container">
-                    <svg class="progress-ring" viewBox="0 0 200 200">
-                        <circle class="progress-ring-bg" cx="100" cy="100" r="90"/>
-                        <circle id="progressCircle" class="progress-ring-progress" cx="100" cy="100" r="90"/>
+                <div class="timer-display">
+                    <svg class="progress-ring" width="300" height="300">
+                        <circle class="progress-ring-bg" cx="150" cy="150" r="140" />
+                        <circle class="progress-ring-circle" cx="150" cy="150" r="140" />
                     </svg>
-                    <div class="timer-display">
-                        <div id="timeDisplay" class="time-text">25:00</div>
+                    <div class="timer-content">
+                        <div class="time" id="timeDisplay">25:00</div>
+                        <div class="status" id="statusText">Ready to focus</div>
                     </div>
                 </div>
 
-                <!-- Motivational Quote -->
-                <div id="quoteContainer" class="quote-container hidden">
-                    <p id="quoteText" class="quote-text"></p>
-                </div>
-
-                <!-- Controls -->
                 <div class="controls">
-                    <button id="resetBtn" class="control-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                            <path d="M3 3v5h5"/>
+                    <button id="startBtn" class="btn btn-primary">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
                         </svg>
+                        Start
                     </button>
-                    <button id="playPauseBtn" class="play-btn">
-                        <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="6 3 20 12 6 21 6 3"/>
+                    <button id="pauseBtn" class="btn btn-secondary" style="display: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+                            <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
                         </svg>
+                        Pause
+                    </button>
+                    <button id="resetBtn" class="btn btn-outline">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 12C3 7.03 7.03 3 12 3C16.97 3 21 7.03 21 12C21 16.97 16.97 21 12 21C9.5 21 7.25 19.94 5.67 18.27" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M3 12H7L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Reset
                     </button>
                 </div>
 
-                <!-- Stats -->
                 <div class="stats">
-                    <p class="stats-label">Pomodoros completados hoy</p>
-                    <p id="completedCount" class="stats-count">0</p>
+                    <div class="stat-card">
+                        <div class="stat-number" id="completedSessions">0</div>
+                        <div class="stat-label">Completed Sessions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTime">0</div>
+                        <div class="stat-label">Minutes Focused</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="currentStreak">0</div>
+                        <div class="stat-label">Current Streak</div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Audio Element for Music -->
-    <audio id="backgroundMusic" loop>
-        <source src="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3" type="audio/mpeg">
+    <audio id="notificationSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuAzvLaizsIHGW87+OZSA0PVKjk77psHgU7k9n0y3kpBSh+zPLTiDcHGGS37OmkUAwKTanh8bllGgcxh9Xx0YU0Bhxqvu7mnEoNDlKm5PG2ZRwGN5DY9M15KAUpfs/y1Ic4BhplvOzomEcLDEyn5fC0YRsGMIXU8dmKOwgaY7zs5p5MDA9Rp+Twt2IdBTmS2PTKeCcFKX3M8tOHOAYYY7nr6JZFCgxLpOPxs2AcBjCE1PHahzsIF2a77OahTg0PU6fk8bdlHAQ5kdj0y3knBSh9y/LUizoIGmO86+mZSg0QVKDJ" type="audio/wav">
     </audio>
 
+    <script src="particles.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

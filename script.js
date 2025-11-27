@@ -1,250 +1,236 @@
-// Constants
-const WORK_TIME = 25 * 60 // 25 minutes in seconds
-const BREAK_TIME = 5 * 60 // 5 minutes in seconds
-
-const MOTIVATIONAL_QUOTES = [
-  "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
-  "No cuentes los días, haz que los días cuenten.",
-  "La disciplina es el puente entre metas y logros.",
-  "Cada momento es una oportunidad para mejorar.",
-  "El enfoque es tu superpoder.",
-  "Pequeños pasos cada día llevan a grandes cambios.",
-  "Tu única limitación eres tú mismo.",
-  "La constancia vence lo que la dicha no alcanza.",
-  "Hoy es el día perfecto para comenzar.",
-  "El progreso, no la perfección.",
-]
-
-// State
-let mode = "work"
-let timeLeft = WORK_TIME
-let isRunning = false
-let completedPomodoros = 0
-let isMusicMode = false
-let isMuted = false
-let timerInterval = null
-let quoteInterval = null
-
-// DOM Elements
-const timeDisplay = document.getElementById("timeDisplay")
-const modeText = document.getElementById("modeText")
-const playPauseBtn = document.getElementById("playPauseBtn")
-const resetBtn = document.getElementById("resetBtn")
-const workBtn = document.getElementById("workBtn")
-const breakBtn = document.getElementById("breakBtn")
-const completedCount = document.getElementById("completedCount")
-const progressCircle = document.getElementById("progressCircle")
-const musicBtn = document.getElementById("musicBtn")
-const musicBanner = document.getElementById("musicBanner")
-const volumeBtn = document.getElementById("volumeBtn")
-const volumeIcon = document.getElementById("volumeIcon")
-const backgroundMusic = document.getElementById("backgroundMusic")
-const quoteContainer = document.getElementById("quoteContainer")
-const quoteText = document.getElementById("quoteText")
-const bgBtn = document.getElementById("bgBtn")
-const bgPicker = document.getElementById("bgPicker")
-const playIcon = document.getElementById("playIcon")
-
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
-  updateDisplay()
-  setupEventListeners()
-})
-
-function setupEventListeners() {
-  playPauseBtn.addEventListener("click", toggleTimer)
-  resetBtn.addEventListener("click", resetTimer)
-  workBtn.addEventListener("click", () => switchMode("work"))
-  breakBtn.addEventListener("click", () => switchMode("break"))
-  musicBtn.addEventListener("click", toggleMusic)
-  volumeBtn.addEventListener("click", toggleMute)
-  bgBtn.addEventListener("click", toggleBackgroundPicker)
-
-  // Background options
-  document.querySelectorAll(".bg-option").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const bg = e.target.dataset.bg
-      changeBackground(bg)
-    })
-  })
-}
-
-function toggleTimer() {
-  isRunning = !isRunning
-
-  if (isRunning) {
-    startTimer()
-    startQuoteRotation()
-    updatePlayIcon(true)
-  } else {
-    stopTimer()
-    stopQuoteRotation()
-    updatePlayIcon(false)
-  }
-}
-
-function startTimer() {
-  timerInterval = setInterval(() => {
-    timeLeft--
-    updateDisplay()
-
-    if (timeLeft <= 0) {
-      handleTimerComplete()
+class PomodoroTimer {
+  constructor() {
+    this.modes = {
+      work: { duration: 25 * 60, label: "Focus Time", color: "#3b9eff" },
+      short: { duration: 5 * 60, label: "Rest", color: "#10b981" },
+      long: { duration: 15 * 60, label: "Long Rest", color: "#8b5cf6" },
     }
-  }, 1000)
-}
 
-function stopTimer() {
-  if (timerInterval) {
-    clearInterval(timerInterval)
-    timerInterval = null
+    this.currentMode = "work"
+    this.timeLeft = this.modes[this.currentMode].duration
+    this.isRunning = false
+    this.timer = null
+    this.totalSeconds = this.modes[this.currentMode].duration
+
+    // Stats
+    this.completedSessions = 0
+    this.totalMinutes = 0
+    this.currentStreak = 0
+    this.sessionsUntilLongBreak = 4
+
+    this.initElements()
+    this.initEventListeners()
+    this.updateDisplay()
+    this.loadStats()
+  }
+
+  initElements() {
+    this.timeDisplay = document.getElementById("timeDisplay")
+    this.statusText = document.getElementById("statusText")
+    this.startBtn = document.getElementById("startBtn")
+    this.pauseBtn = document.getElementById("pauseBtn")
+    this.resetBtn = document.getElementById("resetBtn")
+    this.progressCircle = document.querySelector(".progress-ring-circle")
+    this.timerContent = document.querySelector(".timer-content")
+    this.notificationSound = document.getElementById("notificationSound")
+
+    // Stat elements
+    this.completedSessionsEl = document.getElementById("completedSessions")
+    this.totalTimeEl = document.getElementById("totalTime")
+    this.currentStreakEl = document.getElementById("currentStreak")
+
+    this.circumference = 2 * Math.PI * 140
+    this.progressCircle.style.strokeDasharray = this.circumference
+  }
+
+  initEventListeners() {
+    this.startBtn.addEventListener("click", () => this.start())
+    this.pauseBtn.addEventListener("click", () => this.pause())
+    this.resetBtn.addEventListener("click", () => this.reset())
+
+    document.querySelectorAll(".mode-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const mode = e.target.dataset.mode
+        this.changeMode(mode)
+      })
+    })
+  }
+
+  start() {
+    this.isRunning = true
+    this.startBtn.style.display = "none"
+    this.pauseBtn.style.display = "flex"
+    this.timerContent.classList.add("running")
+
+    this.timer = setInterval(() => {
+      this.timeLeft--
+      this.updateDisplay()
+
+      if (this.timeLeft <= 0) {
+        this.complete()
+      }
+    }, 1000)
+  }
+
+  pause() {
+    this.isRunning = false
+    this.startBtn.style.display = "flex"
+    this.pauseBtn.style.display = "none"
+    this.timerContent.classList.remove("running")
+    clearInterval(this.timer)
+  }
+
+  reset() {
+    this.pause()
+    this.timeLeft = this.modes[this.currentMode].duration
+    this.totalSeconds = this.timeLeft
+    this.updateDisplay()
+  }
+
+  complete() {
+    this.pause()
+    this.playNotification()
+
+    // Update stats
+    if (this.currentMode === "work") {
+      this.completedSessions++
+      this.totalMinutes += 25
+      this.currentStreak++
+      this.sessionsUntilLongBreak--
+
+      // Auto-switch to break
+      if (this.sessionsUntilLongBreak === 0) {
+        this.changeMode("long")
+        this.sessionsUntilLongBreak = 4
+      } else {
+        this.changeMode("short")
+      }
+    } else {
+      this.changeMode("work")
+    }
+
+    this.updateStats()
+    this.saveStats()
+
+    // Show notification
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Pomodoro Timer", {
+        body: `${this.modes[this.currentMode].label} completed!`,
+        icon: "/favicon.ico",
+      })
+    }
+  }
+
+  changeMode(mode) {
+    this.pause()
+
+    document.querySelectorAll(".mode-btn").forEach((btn) => {
+      btn.classList.remove("active")
+    })
+    document.querySelector(`[data-mode="${mode}"]`).classList.add("active")
+
+    this.currentMode = mode
+    this.timeLeft = this.modes[mode].duration
+    this.totalSeconds = this.timeLeft
+    this.progressCircle.style.stroke = this.modes[mode].color
+
+    this.updateDisplay()
+  }
+
+  updateDisplay() {
+    const minutes = Math.floor(this.timeLeft / 60)
+    const seconds = this.timeLeft % 60
+    this.timeDisplay.textContent = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+
+    const modeLabel = this.modes[this.currentMode].label
+    if (this.isRunning) {
+      this.statusText.textContent = `${modeLabel} in progress`
+    } else {
+      this.statusText.textContent = `Ready for ${modeLabel}`
+    }
+
+    // Update progress circle
+    const progress = (this.totalSeconds - this.timeLeft) / this.totalSeconds
+    const offset = this.circumference * (1 - progress)
+    this.progressCircle.style.strokeDashoffset = offset
+
+    // Update document title
+    document.title = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")} - Pomodoro Timer`
+  }
+
+  updateStats() {
+    this.completedSessionsEl.textContent = this.completedSessions
+    this.totalTimeEl.textContent = this.totalMinutes
+    this.currentStreakEl.textContent = this.currentStreak
+  }
+
+  saveStats() {
+    localStorage.setItem(
+      "pomodoroStats",
+      JSON.stringify({
+        completedSessions: this.completedSessions,
+        totalMinutes: this.totalMinutes,
+        currentStreak: this.currentStreak,
+      }),
+    )
+  }
+
+  loadStats() {
+    const stats = localStorage.getItem("pomodoroStats")
+    if (stats) {
+      const data = JSON.parse(stats)
+      this.completedSessions = data.completedSessions || 0
+      this.totalMinutes = data.totalMinutes || 0
+      this.currentStreak = data.currentStreak || 0
+      this.updateStats()
+    }
+  }
+
+  playNotification() {
+    this.notificationSound.play().catch((e) => console.log("Audio play failed:", e))
   }
 }
 
-function resetTimer() {
-  stopTimer()
-  isRunning = false
-  timeLeft = mode === "work" ? WORK_TIME : BREAK_TIME
-  updateDisplay()
-  updatePlayIcon(false)
+// Request notification permission
+if ("Notification" in window && Notification.permission === "default") {
+  Notification.requestPermission()
 }
 
-function handleTimerComplete() {
-  stopTimer()
+// Initialize timer
+const timer = new PomodoroTimer()
 
-  if (mode === "work") {
-    completedPomodoros++
-    completedCount.textContent = completedPomodoros
-    switchMode("break")
-  } else {
-    switchMode("work")
-  }
+const themeToggle = document.getElementById("themeToggle")
 
-  isRunning = false
-  updatePlayIcon(false)
+// Check for saved theme preference or use system preference
+const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)")
+const savedTheme = localStorage.getItem("theme")
+
+if (savedTheme === "dark" || (!savedTheme && prefersDarkScheme.matches)) {
+  document.documentElement.classList.add("dark-theme")
+} else {
+  document.documentElement.classList.remove("dark-theme")
 }
 
-function switchMode(newMode) {
-  mode = newMode
-  timeLeft = mode === "work" ? WORK_TIME : BREAK_TIME
-  isRunning = false
+// Toggle theme when button is clicked
+if (themeToggle) {
+  themeToggle.addEventListener("click", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
 
-  // Update mode buttons
-  workBtn.classList.toggle("active", mode === "work")
-  breakBtn.classList.toggle("active", mode === "break")
+    document.documentElement.classList.toggle("dark-theme")
 
-  // Update mode text
-  modeText.textContent = mode === "work" ? "Tiempo de enfoque" : "Tiempo de descanso"
+    // Save theme preference
+    const isDarkTheme = document.documentElement.classList.contains("dark-theme")
+    localStorage.setItem("theme", isDarkTheme ? "dark" : "light")
 
-  stopTimer()
-  updateDisplay()
-  updatePlayIcon(false)
-}
+    // Recreate particles with new theme colors
+    // Function declaration for createParticles to avoid undeclared variable error
+    function createParticles() {
+      console.log("Particles recreated with new theme colors")
+    }
 
-function updateDisplay() {
-  // Update time
-  const minutes = Math.floor(timeLeft / 60)
-  const seconds = timeLeft % 60
-  timeDisplay.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-
-  // Update progress circle
-  const totalTime = mode === "work" ? WORK_TIME : BREAK_TIME
-  const progress = ((totalTime - timeLeft) / totalTime) * 100
-  const circumference = 2 * Math.PI * 90
-  const offset = circumference * (1 - progress / 100)
-  progressCircle.style.strokeDashoffset = offset
-}
-
-function updatePlayIcon(playing) {
-  if (playing) {
-    playIcon.innerHTML = `
-            <rect x="6" y="4" width="4" height="16"></rect>
-            <rect x="14" y="4" width="4" height="16"></rect>
-        `
-  } else {
-    playIcon.innerHTML = `
-            <polygon points="6 3 20 12 6 21 6 3"/>
-        `
-  }
-}
-
-function toggleMusic() {
-  isMusicMode = !isMusicMode
-  musicBtn.classList.toggle("active", isMusicMode)
-  musicBanner.classList.toggle("hidden", !isMusicMode)
-
-  if (isMusicMode && isRunning) {
-    backgroundMusic.play()
-  } else {
-    backgroundMusic.pause()
-  }
-}
-
-function toggleMute() {
-  isMuted = !isMuted
-  backgroundMusic.muted = isMuted
-
-  if (isMuted) {
-    volumeIcon.innerHTML = `
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <line x1="23" y1="9" x2="17" y2="15"/>
-            <line x1="17" y1="9" x2="23" y2="15"/>
-        `
-  } else {
-    volumeIcon.innerHTML = `
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-        `
-  }
-}
-
-function startQuoteRotation() {
-  showRandomQuote()
-  quoteContainer.classList.remove("hidden")
-
-  quoteInterval = setInterval(() => {
-    showRandomQuote()
-  }, 30000) // Every 30 seconds
-}
-
-function stopQuoteRotation() {
-  if (quoteInterval) {
-    clearInterval(quoteInterval)
-    quoteInterval = null
-  }
-  quoteContainer.classList.add("hidden")
-}
-
-function showRandomQuote() {
-  const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)
-  quoteText.textContent = `"${MOTIVATIONAL_QUOTES[randomIndex]}"`
-}
-
-function toggleBackgroundPicker() {
-  bgPicker.classList.toggle("hidden")
-}
-
-function changeBackground(bgName) {
-  // Remove all background classes
-  document.body.className = ""
-  // Add new background class
-  document.body.classList.add(`bg-${bgName}`)
-
-  // Update active state
-  document.querySelectorAll(".bg-option").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.bg === bgName)
+    if (typeof createParticles === "function") {
+      createParticles()
+    }
   })
-
-  // Hide picker
-  bgPicker.classList.add("hidden")
 }
-
-// Auto-play music when timer starts
-setInterval(() => {
-  if (isMusicMode && isRunning && backgroundMusic.paused) {
-    backgroundMusic.play()
-  } else if ((!isMusicMode || !isRunning) && !backgroundMusic.paused) {
-    backgroundMusic.pause()
-  }
-}, 1000)
